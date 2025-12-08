@@ -1,3 +1,7 @@
+# Zapisz ten kod do pliku app.py w Colab
+# W Colab musimy użyć magicznej komendy, aby zapisać kod do pliku
+%%writefile app.py
+
 import streamlit as st
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
@@ -28,7 +32,7 @@ def narysuj_mikolaja(kolor_stroju):
     ax.set_aspect('equal', adjustable='box') 
     ax.axis('off') 
 
-    # --- Rysowanie: Głowa (koło) ---
+    # --- Rysowanie: Głowa ---
     glowa = patches.Circle((0, 3), radius=2, facecolor=KOLOR_CIALO, 
                            edgecolor=KOLOR_CZARNY, linewidth=1.5)
     ax.add_patch(glowa)
@@ -48,11 +52,61 @@ def narysuj_mikolaja(kolor_stroju):
                                         edgecolor=KOLOR_CZARNY, linewidth=1.5)
     ax.add_patch(opaska_futrzana)
     
-    # Czerwona/Kolorowa część (Polygon) - używa zmiennego koloru
+    # Kolorowa część czapki (Polygon) - używa zmiennego koloru
     punkty_czapki = np.array([(1.5, 6.5), (1.5, 5), (-1.5, 5)])
     czapka_czerwona = patches.Polygon(punkty_czapki, closed=True, 
                                       facecolor=kolor_stroju, edgecolor=KOLOR_CZARNY, linewidth=1.5)
     ax.add_patch(czapka_czerwona)
     
     # Pompon (koło)
-    pompon = patches.Circle((1.5, 6.5), radius=0.5, facecolor=KOLOR_BI
+    pompon = patches.Circle((1.5, 6.5), radius=0.5, facecolor=KOLOR_BIALY_FUTRO, 
+                            edgecolor=KOLOR_CZARNY, linewidth=1)
+    ax.add_patch(pompon)
+    
+    # Broda (Elipsa)
+    broda = patches.Ellipse((0, 1.5), width=4, height=3, facecolor=KOLOR_BIALY_FUTRO, 
+                            edgecolor=KOLOR_CZARNY, linewidth=1.5, zorder=1)
+    ax.add_patch(broda)
+    
+    # --- Rysowanie: Ciało i Pas ---
+    # Ciało - używa zmiennego koloru
+    cialo = patches.Rectangle((-3, -6), 6, 8, facecolor=kolor_stroju, 
+                              edgecolor=KOLOR_CZARNY, linewidth=1.5, zorder=0)
+    ax.add_patch(cialo)
+
+    # Futro na dole
+    futro_dol = patches.Rectangle((-3.5, -6.5), 7, 0.5, facecolor=KOLOR_BIALY_FUTRO, 
+                                 edgecolor=KOLOR_CZARNY, linewidth=1.5, zorder=2)
+    ax.add_patch(futro_dol)
+
+    # Pas
+    pas_czarny = patches.Rectangle((-3.5, -0.5), 7, 1, facecolor=KOLOR_CZARNY, zorder=2)
+    ax.add_patch(pas_czarny)
+    
+    # Klamra
+    klamra = patches.Rectangle((-1, -0.25), 2, 0.5, facecolor=KOLOR_KLAMRA, 
+                              edgecolor=KOLOR_CZARNY, linewidth=1, zorder=3)
+    ax.add_patch(klamra)
+    
+    # --- Finalizacja ---
+    plt.title("Wesoły Mikołaj", fontsize=16)
+    
+    return fig
+
+# --- Główna sekcja Streamlit ---
+
+st.title("🎅 Interaktywny Generator Mikołaja")
+
+st.sidebar.header("Opcje personalizacji")
+
+# Widget do wyboru koloru w panelu bocznym
+kolor_wybrany = st.sidebar.color_picker(
+    'Wybierz kolor stroju Mikołaja:', 
+    value='#D93025' # Domyślny kolor czerwony
+)
+
+# Generowanie i wyświetlanie figury
+figura_mikolaja = narysuj_mikolaja(kolor_wybrany)
+
+# Użycie funkcji Streamlit do wyświetlenia figury
+st.pyplot(figura_mikolaja)
