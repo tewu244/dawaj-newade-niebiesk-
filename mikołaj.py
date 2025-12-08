@@ -1,6 +1,3 @@
-# Zapisz ten kod do pliku app.py w Colab
-# W Colab musimy użyć magicznej komendy, aby zapisać kod do pliku
-%writefile app.py
 
 import streamlit as st
 import matplotlib.pyplot as plt
