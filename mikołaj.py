@@ -1,109 +1,108 @@
-
 import streamlit as st
-import matplotlib.pyplot as plt
-import matplotlib.patches as patches
-import numpy as np
+from supabase import create_client, Client
 
-# Konfiguracja strony
-st.set_page_config(
-    page_title="Interaktywny Mikołaj",
-    layout="centered"
-)
+# --- KONFIGURACJA POŁĄCZENIA ---
+# Wklej tutaj swoje dane z panelu Supabase
+URL = "TWOJ_ADRES_URL_Z_SUPABASE"
+KEY = "TWOJ_KLUCZ_ANON_PUBLIC"
 
-# --- Stałe kolory ---
-KOLOR_CIALO = '#FDD9C2'
-KOLOR_BIALY_FUTRO = '#F0F0F0'
-KOLOR_CZARNY = '#1A1A1A'
-KOLOR_KLAMRA = '#FFD700' # Złoty
+@st.cache_resource
+def init_connection():
+    """Inicjalizuje połączenie z bazą danych raz, aby nie powtarzać tego przy każdym odświeżeniu."""
+    return create_client(URL, KEY)
 
-# Funkcja rysująca Mikołaja
-def narysuj_mikolaja(kolor_stroju):
-    """Generuje figurę Matplotlib Mikołaja z możliwością zmiany koloru stroju."""
-    
-    # Inicjalizacja figury
-    fig, ax = plt.subplots(figsize=(6, 8))
+# Inicjalizacja klienta
+try:
+    supabase = init_connection()
+except Exception as e:
+    st.error(f"Błąd połączenia z Supabase: {e}")
+    st.stop()
 
-    # Ustawienia osi
-    ax.set_xlim(-10, 10)
-    ax.set_ylim(-10, 10)
-    ax.set_aspect('equal', adjustable='box') 
-    ax.axis('off') 
+st.set_page_config(page_title="Zarządzanie Magazynem", layout="centered")
+st.title("📦 System Zarządzania Produktami")
 
-    # --- Rysowanie: Głowa ---
-    glowa = patches.Circle((0, 3), radius=2, facecolor=KOLOR_CIALO, 
-                           edgecolor=KOLOR_CZARNY, linewidth=1.5)
-    ax.add_patch(glowa)
+# --- ZAKŁADKI ---
+tab1, tab2, tab3 = st.tabs([" Dodaj Produkt", "➕ Dodaj Kategorię", "📊 Podgląd Bazy"])
 
-    # Oczy i Nos
-    oko_lewe = patches.Circle((-0.7, 3.5), radius=0.2, facecolor=KOLOR_CZARNY)
-    oko_prawe = patches.Circle((0.7, 3.5), radius=0.2, facecolor=KOLOR_CZARNY)
-    nos = patches.Circle((0, 3), radius=0.3, facecolor=KOLOR_CIALO, 
-                         edgecolor=KOLOR_CZARNY, linewidth=0.5)
-    ax.add_patch(oko_lewe)
-    ax.add_patch(oko_prawe)
-    ax.add_patch(nos)
+# --- DODAWANIE KATEGORII ---
+with tab2:
+    st.header("Nowa Kategoria")
+    with st.form("category_form", clear_on_submit=True):
+        kat_nazwa = st.text_input("Nazwa kategorii")
+        kat_opis = st.text_area("Opis")
+        submit_kat = st.form_submit_button("Zapisz kategorię")
 
-    # --- Rysowanie: Czapka i Broda ---
-    # Opaska futrzana (prostokąt)
-    opaska_futrzana = patches.Rectangle((-2.5, 4.5), 5, 0.5, facecolor=KOLOR_BIALY_FUTRO, 
-                                        edgecolor=KOLOR_CZARNY, linewidth=1.5)
-    ax.add_patch(opaska_futrzana)
-    
-    # Kolorowa część czapki (Polygon) - używa zmiennego koloru
-    punkty_czapki = np.array([(1.5, 6.5), (1.5, 5), (-1.5, 5)])
-    czapka_czerwona = patches.Polygon(punkty_czapki, closed=True, 
-                                      facecolor=kolor_stroju, edgecolor=KOLOR_CZARNY, linewidth=1.5)
-    ax.add_patch(czapka_czerwona)
-    
-    # Pompon (koło)
-    pompon = patches.Circle((1.5, 6.5), radius=0.5, facecolor=KOLOR_BIALY_FUTRO, 
-                            edgecolor=KOLOR_CZARNY, linewidth=1)
-    ax.add_patch(pompon)
-    
-    # Broda (Elipsa)
-    broda = patches.Ellipse((0, 1.5), width=4, height=3, facecolor=KOLOR_BIALY_FUTRO, 
-                            edgecolor=KOLOR_CZARNY, linewidth=1.5, zorder=1)
-    ax.add_patch(broda)
-    
-    # --- Rysowanie: Ciało i Pas ---
-    # Ciało - używa zmiennego koloru
-    cialo = patches.Rectangle((-3, -6), 6, 8, facecolor=kolor_stroju, 
-                              edgecolor=KOLOR_CZARNY, linewidth=1.5, zorder=0)
-    ax.add_patch(cialo)
+        if submit_kat:
+            if kat_nazwa:
+                try:
+                    data = {"nazwa": kat_nazwa, "opis": kat_opis}
+                    supabase.table("Kategorie").insert(data).execute()
+                    st.success(f"Dodano kategorię: {kat_nazwa}")
+                except Exception as e:
+                    st.error(f"Błąd zapisu: {e}")
+            else:
+                st.error("Nazwa kategorii jest wymagana!")
 
-    # Futro na dole
-    futro_dol = patches.Rectangle((-3.5, -6.5), 7, 0.5, facecolor=KOLOR_BIALY_FUTRO, 
-                                 edgecolor=KOLOR_CZARNY, linewidth=1.5, zorder=2)
-    ax.add_patch(futro_dol)
+# --- DODAWANIE PRODUKTU ---
+with tab1:
+    st.header("Nowy Produkt")
+   
+    # Pobranie aktualnych kategorii do listy rozwijanej
+    try:
+        categories_res = supabase.table("Kategorie").select("id, nazwa").execute()
+        categories_data = categories_res.data
+    except Exception as e:
+        st.error("Nie udało się pobrać kategorii.")
+        categories_data = []
+   
+    if not categories_data:
+        st.warning("Najpierw dodaj przynajmniej jedną kategorię w zakładce obok!")
+    else:
+        # Mapowanie nazwy na ID
+        cat_options = {item['nazwa']: item['id'] for item in categories_data}
+       
+        with st.form("product_form", clear_on_submit=True):
+            prod_nazwa = st.text_input("Nazwa produktu")
+            prod_liczba = st.number_input("Liczba (sztuki)", min_value=0, step=1)
+            prod_cena = st.number_input("Cena", min_value=0.0, step=0.01, format="%.2f")
+            prod_kat_nazwa = st.selectbox("Kategoria", options=list(cat_options.keys()))
+           
+            submit_prod = st.form_submit_button("Dodaj produkt")
+           
+            if submit_prod:
+                if prod_nazwa:
+                    try:
+                        product_data = {
+                            "nazwa": prod_nazwa,
+                            "liczba": prod_liczba,
+                            "cena": prod_cena,
+                            "kategorie_id": cat_options[prod_kat_nazwa]
+                        }
+                        supabase.table("Produkty").insert(product_data).execute()
+                        st.success(f"Produkt '{prod_nazwa}' został dodany.")
+                    except Exception as e:
+                        st.error(f"Błąd podczas dodawania produktu: {e}")
+                else:
+                    st.error("Nazwa produktu jest wymagana!")
 
-    # Pas
-    pas_czarny = patches.Rectangle((-3.5, -0.5), 7, 1, facecolor=KOLOR_CZARNY, zorder=2)
-    ax.add_patch(pas_czarny)
-    
-    # Klamra
-    klamra = patches.Rectangle((-1, -0.25), 2, 0.5, facecolor=KOLOR_KLAMRA, 
-                              edgecolor=KOLOR_CZARNY, linewidth=1, zorder=3)
-    ax.add_patch(klamra)
-    
-    # --- Finalizacja ---
-    plt.title("Wesoły Mikołaj", fontsize=16)
-    
-    return fig
-
-# --- Główna sekcja Streamlit ---
-
-st.title("🎅 Interaktywny Generator Mikołaja")
-
-st.sidebar.header("Opcje personalizacji")
-
-# Widget do wyboru koloru w panelu bocznym
-kolor_wybrany = st.sidebar.color_picker(
-    'Wybierz kolor stroju Mikołaja:', 
-    value='#D93025' # Domyślny kolor czerwony
-)
-
-# Generowanie i wyświetlanie figury
-figura_mikolaja = narysuj_mikolaja(kolor_wybrany)
-
-# Użycie funkcji Streamlit do wyświetlenia figury
-st.pyplot(figura_mikolaja)
+# --- PODGLĄD DANYCH ---
+with tab3:
+    st.header("Aktualny stan bazy")
+   
+    col1, col2 = st.columns(2)
+   
+    with col1:
+        st.subheader("Kategorie")
+        kat_view = supabase.table("Kategorie").select("id, nazwa, opis").execute()
+        if kat_view.data:
+            st.dataframe(kat_view.data, use_container_width=True)
+        else:
+            st.info("Brak kategorii.")
+   
+    with col2:
+        st.subheader("Produkty")
+        prod_view = supabase.table("Produkty").select("id, nazwa, liczba, cena, kategorie_id").execute()
+        if prod_view.data:
+            st.dataframe(prod_view.data, use_container_width=True)
+        else:
+            st.info("Brak produktów.")
