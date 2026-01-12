@@ -3,8 +3,8 @@ from supabase import create_client, Client
 
 # --- KONFIGURACJA POŁĄCZENIA ---
 # Wklej tutaj swoje dane z panelu Supabase
-URL = "TWOJ_ADRES_URL_Z_SUPABASE"
-KEY = "TWOJ_KLUCZ_ANON_PUBLIC"
+URL = "https://rheivefnhykotjqikvqh.supabase.co"
+KEY = "sb_publishable_R2Q6km5mKXl-1FYpSYgSvA_jYj06sOz"
 
 @st.cache_resource
 def init_connection():
